@@ -2,19 +2,6 @@
 
 基于 Maxwell 方程的位移门控物理神经网络实验（1D / 2D）。
 
-## 如何阅读这个项目
-
-目前这个仓库主要是用来记录和分享实验结果，还不是完整的开箱即用工具。  
-如果你有兴趣，可以从以下几个文件开始看起：
-
-- `REPORT.md`：包含 1D / 2D Maxwell 实验的 L2 误差、门控稀疏度和超参数推荐表  
-- `paper_draft.md`：论文草稿，解释了位移门控的想法和实验设计  
-- `pde.py`：Maxwell 方程的定义和解析解（已修正）  
-- `run_experiment_1d.py`、`run_experiment_2d.py`：1D / 2D 实验入口脚本
-
-> 提示：目前代码和环境主要是为我自己实验用的，还没有整理成“一键安装、一键运行”的完整教程。  
-> 如果有工程背景的朋友想复现实验，可以参考上述脚本和 `requirements.txt` 自行调整。
-
 ## 项目介绍
 
 这是我个人从零学习 AI 和物理时做的一个练习项目。  
@@ -25,50 +12,52 @@
 
 - 1D / 2D Maxwell PINN 的训练代码  
 - Baseline 和带位移门控（DispField）的模型  
-- 一份 `REPORT.md`，总结了 L2 误差、稀疏度和推荐超参数  
+- 一份 `REPORT.md`，总结了 L2 误差、稀疏度和超参数推荐表  
 - 一份 `paper_draft.md`，是准备投稿用的草稿  
 
 这个仓库的目标是留下一个真实的学习过程：  
 我会把现在能跑通、验证过的结果都记录下来，给未来的自己和别人参考。
 
-## 环境需求
+## 如何阅读这个项目
 
-- Python 3.10+
-- PyTorch（支持 CUDA）
-- 一张支持 CUDA 的显卡（例如 RTX 3050）
+目前这个仓库主要是用来记录和分享实验结果，还不是完整的开箱即用工具。  
+如果你有兴趣，可以从以下几个文件开始看起：
 
-## 安装步骤
+- `REPORT.md`：包含 1D / 2D Maxwell 实验的 L2 误差、门控稀疏度和超参数推荐表  
+- `paper_draft.md`：论文草稿，解释了位移门控的想法和实验设计  
+- `pde.py`：Maxwell 方程的定义和解析解（已修正）  
+- `run_experiment_1d.py`、`run_experiment_2d.py`：1D / 2D 实验入口脚本  
 
-```bash
-git clone https://github.com/jordenlcc-bot/MaxWell-.git
-cd MaxWell-
-pip install -r requirements.txt
-运行 1D / 2D 实验
-运行 1D 实验：
-
-bash
-python run_experiment_1d.py
-运行 2D 实验：
-
-bash
-python run_experiment_2d.py
-运行完成后，可以在 REPORT.md 中查看 1D / 2D 的 L2 误差和稀疏度结果。
+> 提示：目前代码和环境主要是为我自己实验用的，还没有整理成“一键安装、一键运行”的完整教程。  
+> 如果有工程背景的朋友想复现实验，可以参考上述脚本和 `requirements.txt` 自行调整。
 
 ## 实验结果摘要
 
 ### 1D Maxwell（诊断实验）
 
-| 模型       | L2 误差               | 门控稀疏度  |
-|------------|----------------------|------------|
-| Baseline   | ≈ 2.18 × 10^-3       | -          |
-| DispField  | ≈ 1.61 × 10^-3       | 75.0%      |
+| 模型       | L2 误差         | 门控稀疏度 |
+|------------|-----------------|------------|
+| Baseline   | ≈ 2.18 × 10^-3  | -          |
+| DispField  | ≈ 1.61 × 10^-3  | 75.0%      |
 
 ### 2D Maxwell（主实验）
 
-| 模型       | L2 误差               | 门控稀疏度  |
-|------------|----------------------|------------|
-| Baseline   | 2.87 × 10^-2         | -          |
-| DispField  | 1.56 × 10^-2         | 72.0%      |
+| 模型       | L2 误差         | 门控稀疏度 |
+|------------|-----------------|------------|
+| Baseline   | 2.87 × 10^-2    | -          |
+| DispField  | 1.56 × 10^-2    | 72.0%      |
 
 > 说明：2D 中，DispField 相比 Baseline 的 L2 误差降低约 45.9%，同时保持约 72% 的物理稀疏度。
 
+## 环境需求（可选）
+
+- Python 3.10+
+- PyTorch（支持 CUDA）
+- 一张支持 CUDA 的显卡（例如 RTX 3050）
+
+## 安装步骤（可选）
+
+```bash
+git clone https://github.com/jordenlcc-bot/MaxWell-.git
+cd MaxWell-
+pip install -r requirements.txt
