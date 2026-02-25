@@ -27,6 +27,7 @@ from models import BaselinePINN, DisplacementPINN
 from pde import exact_solution
 
 os.makedirs("results", exist_ok=True)
+os.makedirs("figures", exist_ok=True)
 
 DEVICE     = "cuda" if torch.cuda.is_available() else "cpu"
 HIDDEN_DIM = 64
@@ -152,7 +153,7 @@ fig.suptitle(
     color=TEXT_COLOR, fontsize=13, fontweight="bold", y=1.02
 )
 plt.tight_layout()
-path1 = "results/whitepaper_fig1_l2_gate.png"
+path1 = "figures/whitepaper_fig1_l2_gate.png"
 plt.savefig(path1, dpi=200, bbox_inches="tight", facecolor=DARK_BG)
 plt.close()
 print(f"✅ Fig.1 → {path1}")
@@ -216,7 +217,7 @@ for row, (label, color) in enumerate(zip(row_labels, row_colors)):
 
 fig2.suptitle("Ez Field Distribution: Exact vs. PINN Predictions at t = 0, 0.5, 1.0",
               color=TEXT_COLOR, fontsize=12, fontweight="bold")
-path2 = "results/whitepaper_fig2_field.png"
+path2 = "figures/whitepaper_fig2_field.png"
 plt.savefig(path2, dpi=200, bbox_inches="tight", facecolor=DARK_BG)
 plt.close()
 print(f"✅ Fig.2 → {path2}")
@@ -269,7 +270,7 @@ for i, (row_data, bg) in enumerate(zip(rows, row_colors_bg)):
 ax3.set_title("Table 1  ·  1D Maxwell PINN Experiment Summary (GPU · CUDA 12.1)",
               color=TEXT_COLOR, fontsize=12, fontweight="bold", pad=16)
 
-path3 = "results/whitepaper_fig3_table.png"
+path3 = "figures/whitepaper_fig3_table.png"
 plt.savefig(path3, dpi=200, bbox_inches="tight", facecolor=DARK_BG)
 plt.close()
 print(f"✅ Fig.3 → {path3}")

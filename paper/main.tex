@@ -1,0 +1,402 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{microtype}
+\usepackage{listings}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% ─── Title ─────────────────────────────────────────────────────────────────
+
+\title{
+  Displacement-Gated PINN: Physically-Motivated Sparse Gating\\
+  for Maxwell Equation Solving with Physics-Informed Neural Networks
+}
+
+\author{
+  Jorden Lee \\
+  \texttt{https://github.com/jordenlec-bot/MaxWell}
+}
+
+\date{Draft v0.2 \quad 2026-02-23}
+
+% ─── Document ──────────────────────────────────────────────────────────────
+
+\begin{document}
+
+\maketitle
+
+% ─── Abstract ──────────────────────────────────────────────────────────────
+
+\begin{abstract}
+We propose \textbf{DisplacementFieldCell}, a gated residual layer for
+Physics-Informed Neural Networks (PINNs), whose design is motivated by
+analogy with Maxwell's displacement current $\partial\mathbf{D}/\partial t$.
+Structurally, the gate is equivalent to the Highway/GRU update gate
+($u' = g \odot h + (1-g) \odot u$), but augmented with two physics-motivated
+design choices: (1) negative bias initialization ($b_g = -1$, giving
+$\sim$73\% initial sparsity), and (2) an explicit L1 gate regularizer
+$\mathcal{L}_\mathrm{gate} = \mathrm{mean}(g)$ to encourage self-organizing
+dormancy. Applied to 1D and 2D time-domain Maxwell TM benchmark problems,
+the method achieves \textbf{37.5\%} and \textbf{49.4\%} lower relative L2
+error compared to a standard MLP PINN, while maintaining
+\textbf{73.6\%} and \textbf{71.2\%} gate sparsity, respectively.
+The L2 improvement grows with problem dimensionality, consistent with the
+physical intuition that higher-dimensional Maxwell fields exhibit stronger
+spatial localization of active field regions.
+Furthermore, the architecture is quantization-friendly:
+INT8 TFLite deployment on a mobile CPU achieves 8.8\,ms inference latency
+(59\% faster than FP32) with a 60\% RAM reduction.
+Code available at \url{https://github.com/jordenlec-bot/MaxWell}.
+\end{abstract}
+
+% ─── 1. Introduction ────────────────────────────────────────────────────────
+
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Background}
+
+Maxwell's equations govern all classical electromagnetic phenomena and remain
+central to problems ranging from antenna design to photonic chip simulation.
+Solving these equations numerically is typically done via finite-difference
+time-domain (FDTD) or finite-element methods, which require fine
+spatial-temporal meshes and scale poorly with domain size.
+Physics-Informed Neural Networks (PINNs)~\cite{raissi2019} offer a mesh-free
+alternative: a neural network is trained to satisfy PDE residuals and
+boundary/initial conditions simultaneously, without labeled simulation data.
+
+Standard MLP blocks in PINNs treat all spatial-temporal locations
+uniformly---every neuron updates on every input, regardless of whether
+the local field is dynamically active or quiescent.
+
+\subsection{Motivation: Displacement Current as a Design Analogy}
+
+In classical electrodynamics, the displacement current
+$\partial\mathbf{D}/\partial t$ appears in Amp\`{e}re's law:
+\begin{equation}
+  \nabla \times \mathbf{H} = \mathbf{J} + \frac{\partial \mathbf{D}}{\partial t}.
+\end{equation}
+Its physical role is selective: it contributes to the curl of $\mathbf{H}$
+\emph{only when} $\mathbf{D}$ is changing.
+We use this as a \emph{design analogy}, not a mathematical derivation:
+we train a sigmoid gate to learn which regions of the input domain require
+active field updates, and encourage it to remain sparse (mimicking the
+quiescence of the displacement current in static regions) via regularization.
+
+\subsection{Contributions}
+
+\begin{enumerate}
+  \item We propose \textbf{DisplacementFieldCell}, a GRU/Highway-style gated
+        residual layer for PINNs, with physics-motivated sparsity design
+        (negative bias initialization + L1 gate regularizer).
+  \item We show \textbf{49.4\%} lower L2 error on 2D Maxwell TM cavity and
+        \textbf{37.5\%} on 1D TM, with self-organized gate sparsity
+        of 71--74\% without manual threshold tuning.
+  \item We validate hardware efficiency: GPU AMP nearly halves VRAM and
+        latency; INT8 TFLite mobile deployment achieves 8.8\,ms inference
+        with 60\% lower peak RAM.
+  \item We situate DisplacementFieldCell within Highway, GRU, SNN, and
+        Dynamic Sparse Attention, clarifying structural similarities and
+        the distinct physics-motivated sparsity contribution.
+\end{enumerate}
+
+% ─── 2. Background ──────────────────────────────────────────────────────────
+
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{Physics-Informed Neural Networks}
+
+PINNs encode physical laws into the training loss by minimizing PDE
+residuals computed via automatic differentiation~\cite{raissi2019}.
+For time-domain Maxwell equations, the loss is:
+\begin{equation}
+  \mathcal{L} = \mathcal{L}_\mathrm{PDE}
+              + w_\mathrm{IC}\,\mathcal{L}_\mathrm{IC}
+              + w_\mathrm{BC}\,\mathcal{L}_\mathrm{BC},
+\end{equation}
+where each term is a mean-squared error between the network output
+(and its derivatives) and the corresponding physical constraint.
+
+\subsection{Dynamic Sparse Computation}
+
+Spiking Neural Networks (SNNs)~\cite{maass1997,davies2018} achieve
+10$\times$--30$\times$ energy efficiency on neuromorphic hardware by
+updating neuron state only when input spikes exceed a threshold.
+Dynamic Sparse Attention (DSA)~\cite{dsa2025} extends this to Transformers
+via learned top-$k$ attention masks.
+Our method provides a physics-motivated analog for MLP layers in PINNs.
+
+\subsection{Gated Networks: Highway and GRU}
+
+Highway Networks~\cite{srivastava2015} and GRU~\cite{cho2014} both use the
+gated residual form $u' = g \cdot h + (1-g) \cdot u$.
+DisplacementFieldCell uses the same structure but differs in:
+(1) domain (continuous PDE inputs rather than sequences),
+(2) designed sparsity via negative bias initialization and explicit
+$\mathcal{L}_\mathrm{gate}$, and
+(3) physics-grounded motivation from Maxwell's displacement current.
+
+% ─── 3. Method ──────────────────────────────────────────────────────────────
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Problem Formulation}
+
+\textbf{1D Maxwell equations} (TM mode, $c=1$):
+\begin{equation}
+  \frac{\partial E_z}{\partial t} = -\frac{\partial H_y}{\partial x}, \qquad
+  \frac{\partial H_y}{\partial t} = -\frac{\partial E_z}{\partial x},
+\end{equation}
+with analytical solution
+$E_z(x,t)=\sin(\pi x)\cos(\pi t)$,
+$H_y(x,t)=-\sin(\pi x)\sin(\pi t)$.
+
+\textbf{2D Maxwell equations} (TM mode, $c=1$):
+\begin{align}
+  \frac{\partial E_z}{\partial t} &= \frac{\partial H_y}{\partial x}
+                                    - \frac{\partial H_x}{\partial y}, \\
+  \frac{\partial H_x}{\partial t} &= -\frac{\partial E_z}{\partial y}, \\
+  \frac{\partial H_y}{\partial t} &= \frac{\partial E_z}{\partial x},
+\end{align}
+with cavity resonance solution ($\omega = \pi\sqrt{2}$, $m=n=1$):
+$E_z(x,y,t)=\sin(\pi x)\sin(\pi y)\cos(\omega t)$.
+
+Both problems are solved in the unit domain with perfectly conducting
+boundary conditions ($E_z = 0$ on all walls).
+
+\subsection{Baseline Architecture}
+
+The baseline PINN is a fully connected MLP with sinusoidal activations
+(SIREN~\cite{sitzmann2020}):
+\begin{equation}
+  u^{(0)} = \sin(W_0 \cdot \mathbf{x} + b_0), \qquad
+  u^{(l+1)} = \sin(W_l \cdot u^{(l)} + b_l).
+\end{equation}
+Network width: 64, depth: 4 hidden layers.
+
+\subsection{DisplacementFieldCell}
+
+Each hidden layer is replaced by:
+\begin{align}
+  h   &= \sin(W_h \cdot u + b_h), \label{eq:field}\\
+  g   &= \sigma(W_g \cdot u + b_g), \quad g \in (0,1)^d, \label{eq:gate}\\
+  u'  &= g \odot h + (1 - g) \odot u. \label{eq:gated}
+\end{align}
+
+\noindent\textbf{Initialization}: Gate bias $b_g = -1$ gives
+$\sigma(-1) \approx 0.27$, i.e., 73\% initial sparsity.
+
+\noindent\textbf{Sparsity regularization}:
+\begin{equation}
+  \mathcal{L}_\mathrm{gate} = \frac{1}{L \cdot N \cdot d}
+  \sum_{l,n,k} g_{l,n,k}, \qquad \lambda_g = 0.01.
+\end{equation}
+
+Table~\ref{tab:comparison} compares DisplacementFieldCell to prior gated networks.
+
+\begin{table}[h]
+\centering
+\caption{Comparison with related gated architectures.}
+\label{tab:comparison}
+\begin{tabular}{lcccc}
+\toprule
+Method & Gate motivation & Sparsity regularization & Gate bias init & Domain \\
+\midrule
+Highway Net & Gradient flow   & None & Typically 0 & Sequence \\
+GRU         & Memory          & None & Typically 0 & Sequence \\
+\textbf{Ours} & \textbf{Maxwell $\partial\mathbf{D}/\partial t$} &
+  \textbf{$\mathcal{L}_\mathrm{gate}$ (L1)} &
+  \textbf{$-1$ (73\% sparse)} &
+  \textbf{PDE (PINN)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Training Configuration}
+
+\begin{table}[h]
+\centering
+\caption{Training hyperparameters.}
+\label{tab:hyperparams}
+\begin{tabular}{lcc}
+\toprule
+Hyperparameter & 1D & 2D \\
+\midrule
+Hidden dim      & 64    & 64    \\
+Depth           & 4     & 4     \\
+Collocation pts & 2000  & 3000  \\
+IC points       & 500   & 800   \\
+BC points       & 500   & 300×4 \\
+Epochs          & 6000  & 5000  \\
+Optimizer       & Adam  & Adam  \\
+$w_\mathrm{IC}$ & 10.0  & 10.0  \\
+$w_\mathrm{BC}$ & 10.0  & 10.0  \\
+$\lambda_g$     & 0.01  & 0.01  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─── 4. Experiments ─────────────────────────────────────────────────────────
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{1D Maxwell Results}
+
+\begin{table}[h]
+\centering
+\caption{1D TM Maxwell results.}
+\label{tab:1d_results}
+\begin{tabular}{lccc}
+\toprule
+Model & Final L2 Error & Gate Sparsity & Train Time \\
+\midrule
+Baseline MLP PINN          & $5.33 \times 10^{-3}$ & ---   & 100s \\
+\textbf{Displacement-Gated} & $\mathbf{3.33 \times 10^{-3}}$ & \textbf{73.6\%} & 288s \\
+Improvement                & \textbf{$\downarrow$37.5\%} & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{2D Maxwell Results}
+
+\begin{table}[h]
+\centering
+\caption{2D TM cavity Maxwell results.}
+\label{tab:2d_results}
+\begin{tabular}{lccc}
+\toprule
+Model & Final L2 Error & Gate Sparsity & Train Time \\
+\midrule
+Baseline MLP PINN          & $3.30 \times 10^{-2}$ & ---   & 210s \\
+\textbf{Displacement-Gated} & $\mathbf{1.67 \times 10^{-2}}$ & \textbf{71.2\%} & 430s \\
+Improvement                & \textbf{$\downarrow$49.4\%} & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Gate Sparsity Emergence}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.65\textwidth]{figures/gate_sparsity_vs_epoch.pdf}
+  \caption{Gate activation rate vs.\ training epoch for 1D and 2D experiments.
+           Sparsity self-organizes from $\sim$73\% initial to stable 71--74\%
+           at convergence, without manual threshold tuning.}
+  \label{fig:sparsity_epoch}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.45\textwidth]{figures/gate_heatmap_2d.pdf}\hfill
+  \includegraphics[width=0.45\textwidth]{figures/field_slice_2d.pdf}
+  \caption{Left: Spatial gate activation heatmap at fixed $t$.
+           Right: Corresponding $E_z$ field.
+           Gates activate near field-active regions (cavity walls, wave crests).}
+  \label{fig:gate_heatmap}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.60\textwidth]{figures/residual_gate_correlation.pdf}
+  \caption{Correlation between local PDE residual and gate activation.
+           Gates tend to open where PDE residual is large,
+           supporting the displacement-current analogy.}
+  \label{fig:residual_gate}
+\end{figure}
+
+\subsection{Hardware Efficiency}
+
+\begin{table}[h]
+\centering
+\caption{GPU AMP benchmark (RTX 3050 Laptop GPU).}
+\label{tab:gpu}
+\begin{tabular}{lcccc}
+\toprule
+Precision & Batch & Avg. Time/Step & Peak VRAM & Speedup \\
+\midrule
+FP32        & 8 & 14.11\,ms & 105.1\,MB & Baseline \\
+FP16 (AMP)  & 8 &  7.11\,ms &  57.5\,MB & $\times$1.98 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Edge deployment: Android CPU via TFLite (Batch=1, 4 threads).}
+\label{tab:edge}
+\begin{tabular}{lccc}
+\toprule
+Precision & Avg. Latency & Peak RAM & Model Size \\
+\midrule
+FP32 & 21.48\,ms & 39.1\,MB & 14.0\,MB \\
+\textbf{INT8} & \textbf{8.77\,ms} & \textbf{14.8\,MB} & \textbf{4.0\,MB} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─── 5. Discussion ──────────────────────────────────────────────────────────
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Why does the gate help?}
+The gate acts as a learned mixture of residual connection and field update.
+At initialization, 73\% of gates are suppressed, providing strong gradient
+regularization. During training, gates selectively open where the PDE
+residual is large, directing optimization capacity toward the most
+dynamically active regions of the domain.
+
+\paragraph{Connection to existing sparse methods.}
+Unlike SNN (hard threshold) or DSA (top-$k$ mask), our gate uses a
+continuous sigmoid with explicit L1 regularization and physics-motivated
+initialization. The Maxwell analogy provides physical interpretability for
+why sparse gates make sense in the PDE-solving context.
+
+\paragraph{Limitations.}
+(1) Training time increases $\sim$2.3$\times$ due to gate computation overhead.
+(2) At small network scales, GPU kernel launch overhead masks sparsity savings.
+(3) Gate rate exhibits oscillation around epoch 1500--2500 before stabilizing;
+adaptive $\lambda_g$ scheduling may help.
+
+% ─── 6. Conclusion ──────────────────────────────────────────────────────────
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We introduced DisplacementFieldCell, a sparsely gated residual layer for
+PINN-based Maxwell equation solving, designed by analogy with Maxwell's
+displacement current. The gate structure is equivalent to a GRU update gate,
+augmented with negative bias initialization and explicit L1 sparsity
+regularization. Key results:
+\textbf{49.4\%} lower L2 error on 2D Maxwell TM cavity mode,
+\textbf{71.2\%} self-organized gate sparsity,
+and edge-deployable INT8 models running in 8.8\,ms on mobile CPU.
+The improvement grows with problem dimensionality (37.5\% $\to$ 49.4\%
+from 1D to 2D), consistent with stronger spatial localization of active
+field regions in higher-dimensional Maxwell problems.
+
+% ─── References ─────────────────────────────────────────────────────────────
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\end{document}

@@ -1,64 +1,188 @@
-# Maxwell-PINN MVP (v0.1 基线版)
+# MaxWell — Displacement-Gated PINN for Maxwell Equations
 
-这是一个处于实验阶段（Experimental）的工程研究级仓库，主要探讨将麦克斯韦方程组（Maxwell's Equations）中的“位移电流”概念物理学启发，映射为基于物理信息神经网络（PINN）下可解释的动态稀疏激活门控结构。项目包含基础的 1D/2D Maxwell 方程组求解对比组及其性能耗时测试脚本。
+[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **声明：本仓库仅用于技术预研与验证，当前所有结论、模型表现与参数均为实验基线阶段数据，后续版本可能随时发生更新或重构。**
+A Maxwell-inspired Physics-Informed Neural Network (PINN) with **sparse displacement gating**.  
+Gates self-organize to ~70–75% sparsity and improve L2 accuracy on 1D/2D time-domain Maxwell equations.  
+Model deploys to mobile edge devices via INT8 TFLite at **8.8 ms / frame**.
+
+> Paper: *Displacement-Gated PINN: Physically-Motivated Sparse Gating for Maxwell Equation Solving*  
+> Author: Jorden Lee  
+> Status: Draft v0.2 · 2026-02-23  
+> Code: <https://github.com/jordenlec-bot/MaxWell>
 
 ---
 
-## 一、 环境依赖与安装
+## Results at a Glance
 
-项目目前主要依赖 PyTorch、TensorFlow Lite（用于移动端部署验证）及标准的数据处理后端。
-推荐通过 Python 3.10+ 环境下新建 `venv` 进行使用。
+| Problem | Baseline L2 | Gated L2 | Improvement | Gate Sparsity |
+|---------|------------|----------|-------------|---------------|
+| 1D TM Maxwell | 5.33e-3 | 3.33e-3 | **↓ 37.5%** | 73.6% |
+| 2D TM Cavity  | 3.30e-2 | 1.67e-2 | **↓ 49.4%** | 71.2% |
+
+| Hardware | Precision | Latency | Peak RAM |
+|----------|-----------|---------|----------|
+| RTX 3050 (GPU) | FP16 AMP | 7.11 ms | 57.5 MB |
+| Android CPU | INT8 | **8.77 ms** | 14.8 MB |
+
+---
+
+## Installation
+
+Tested on:
+
+- Python 3.11 · PyTorch 2.5.1+cu121 · Windows 11
+- NVIDIA RTX 3050 Laptop GPU (CUDA 12.1)
 
 ```bash
-# 1. 新建并激活虚拟环境 (Windows)
-python -m venv .venv
-.venv\Scripts\activate
-
-# 2. 安装项目依赖
+git clone https://github.com/jordenlec-bot/MaxWell.git
+cd MaxWell
 pip install -r requirements.txt
+```
+
+`requirements.txt`:
+
+```
+torch==2.5.1
+numpy
+matplotlib
+scipy
+tqdm
 ```
 
 ---
 
-## 二、 关键执行脚本说明
+## Quick Start
 
-项目中提供如下经过整理的一键启动执行脚本，支持自动化对标与图表生成：
-
-### 1) 1D Maxwell 方程求解
-
-使用预置网络架构（包含 `Baseline MLP` 以及 `Displacement-Gated`）分别训练求解 1D 波动空间，验证门控机制能否正确收敛及记录稀疏性态：
+### 1D Maxwell Experiment
 
 ```bash
 python run_experiment.py
 ```
 
-> 输出结果（曲线等信息）默认存放至 `results/` 下。
+Output:
 
-### 2) 2D Maxwell (TM Mode) 方程求解
+- Baseline vs Gated PINN training curves
+- Final L2 error and gate sparsity
+- Saved plots → `results/`
 
-在附加一维空间自由度（含局部突变区域）的情况下进行的进阶求解实验：
+### 2D Maxwell Experiment
 
 ```bash
 python run_experiment_2d.py
 ```
 
-### 3) 基础算子硬件性能基线获取 (GPU / CPU Benchmark)
+Output:
 
-测试当前设备环境下模型的真实计算开销、内存用量，支持混合精度 (AMP) 能力度量以及与常规卷积网络（如 MobileNetV2 等同级开销模型）的参数化对比。
+- 2D TM cavity results (Ez, Hx, Hy)
+- Baseline vs Gated comparison
+- Saved plots → `results/`
+
+### Generate Paper Figures
 
 ```bash
-# 评估显卡上的推断耗时 (支持显卡并默认输出基准对照表日志)
-python benchmark_baseline.py --device cuda
+python analyze.py
+```
+
+Generates:
+
+- Gate sparsity vs epoch (1D + 2D)
+- Spatial gate heatmap (2D)
+- PDE residual vs gate correlation
+- L2 improvement bar chart
+
+### Inference & Hardware Benchmark
+
+```bash
+python benchmark_baseline.py
+python benchmark_inference.py
+```
+
+Output:
+
+- GPU AMP latency and VRAM comparison
+- INT8 TFLite mobile benchmark results
+- Gate pruning speedup and accuracy degradation
+
+---
+
+## Repository Structure
+
+```text
+MaxWell/
+├── run_experiment.py         ← 1D Maxwell training
+├── run_experiment_2d.py      ← 2D Maxwell training
+├── analyze.py                ← Generate figures
+├── benchmark_baseline.py     ← Hardware benchmark
+├── benchmark_inference.py    ← Inference benchmark
+├── models.py                 ← 1D model architectures
+├── models_2d.py              ← 2D model architectures
+├── pde.py                    ← 1D PDE definitions & analytical solutions
+├── pde_2d.py                 ← 2D PDE definitions & analytical solutions
+├── results/                  ← Training outputs
+├── figures/                  ← Paper figures
+├── lab/                      ← TFLite / ONNX models and Edge experiments
+├── paper/                    
+│   ├── main.tex              ← Technical whitepaper LaTeX 
+│   └── refs.bib              ← Bibliography
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## 三、 文档与测试数据查阅
+## Core Architecture: DisplacementFieldCell
 
-项目内包含以下核心补充文档，供深入查看工程基线和科研构想：
+```python
+class DisplacementFieldCell(nn.Module):
+    """
+    Gate:   g = σ(W_g · u + b_g),  b_g = −1  →  73% initial sparsity
+    Output: u' = g ⊙ sin(W_h · u) + (1 − g) ⊙ u
+    Loss:   L_gate = mean(g),  λ = 0.01
+    """
+    def __init__(self, dim):
+        super().__init__()
+        self.field_linear = nn.Linear(dim, dim)
+        self.gate_linear  = nn.Linear(dim, dim)
+        nn.init.constant_(self.gate_linear.bias, -1.0)
 
-* 📊 **硬件测试基线报告 (`results/perf_baseline.md`)**：汇总了通过上述 `benchmark_baseline.py` 采集到的各项原始数字，包括在 RTX Laptop 上的自动混合精度 (AMP) 开销和基于 Android 设备中 TFLite INT8 下的物理算力基准测试表。
-* 📝 **执行简报 (`REPORT.md`)**：提供精简后的架构思路以及阶段性测试 L2 方程还原度摘要。
-* 📄 **白皮书草稿 (`paper_draft.md`)**：针对本方案完整的研究视角撰写（Draft 阶段，可供外部申请 / 研究报告参考）。
+    def forward(self, u):
+        h = torch.sin(self.field_linear(u))
+        g = torch.sigmoid(self.gate_linear(u))
+        return g * h + (1.0 - g) * u
+```
+
+Physical analogy: like Maxwell's displacement current ∂**D**/∂t,
+the gate activates **only in dynamically active regions** and stays closed elsewhere.
+
+---
+
+## Adapt to Your Own PDE
+
+1. Open `pde_2d.py` as a template.
+2. Replace PDE residual function with your own equations.
+3. Copy `run_experiment_2d.py` → `run_custom.py`, update the PDE import.
+4. Run `python run_custom.py`.
+
+---
+
+## Citation
+
+```bibtex
+@misc{lee2026displacement,
+  title         = {Displacement-Gated PINN: Physically-Motivated Sparse Gating
+                   for Maxwell Equation Solving with Physics-Informed Neural Networks},
+  author        = {Jorden Lee},
+  year          = {2026},
+  eprint        = {arXiv:xxxx.xxxxx},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+```
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE).
