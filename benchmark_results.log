@@ -1,0 +1,14 @@
+2026-02-25 17:20:12 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=1, N=4096        |   2.40 ms/step |   20.8 MB
+2026-02-25 17:20:13 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=8, N=4096        |  14.11 ms/step |  105.1 MB
+2026-02-25 17:20:20 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=32, N=4096       |  55.92 ms/step |  394.8 MB
+2026-02-25 17:20:20 | 2D FDTD      | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=1, 256x256       |   0.21 ms/step |    9.6 MB
+2026-02-25 17:20:20 | 2D FDTD      | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=1, 512x512       |   0.22 ms/step |   14.1 MB
+2026-02-25 17:20:33 | MobileNetV2  | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=1, 3x224x224     |   5.98 ms/step |   28.2 MB
+2026-02-25 17:20:34 | MobileNetV2  | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP32  | B=8, 3x224x224     |  11.72 ms/step |  101.9 MB
+2026-02-25 17:20:35 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=1, N=4096        |   2.00 ms/step |   15.1 MB
+2026-02-25 17:20:35 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=8, N=4096        |   7.11 ms/step |   57.5 MB
+2026-02-25 17:20:38 | Maxwell-PINN | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=32, N=4096       |  28.01 ms/step |  203.1 MB
+2026-02-25 17:20:39 | 2D FDTD      | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=1, 256x256       |   0.52 ms/step |    9.6 MB
+2026-02-25 17:20:39 | 2D FDTD      | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=1, 512x512       |   0.63 ms/step |   14.1 MB
+2026-02-25 17:20:41 | MobileNetV2  | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=1, 3x224x224     |  14.02 ms/step |   23.5 MB
+2026-02-25 17:20:42 | MobileNetV2  | NVIDIA GeForce RTX 3050 6GB Laptop GPU | FP16 (AMP) | B=8, 3x224x224     |  13.53 ms/step |   62.8 MB

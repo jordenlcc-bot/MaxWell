@@ -1,0 +1,18 @@
+INFO: STARTING!
+INFO: Log parameter values verbosely: [0]
+INFO: Min num runs: [100]
+INFO: Min warmup runs: [10]
+INFO: Graph: [/data/local/tmp/mobilenet_v2_int8.tflite]
+INFO: Signature to run: []
+INFO: Use NNAPI: [1]
+INFO: NNAPI accelerators available: [mtk-neuron_shim,nnapi-reference]
+INFO: Loaded model /data/local/tmp/mobilenet_v2_int8.tflite
+INFO: Initialized TensorFlow Lite runtime.
+INFO: NNAPI delegate created.
+INFO: Created TensorFlow Lite delegate for NNAPI.
+WARNING: NNAPI SL driver did not implement SL_ANeuralNetworksDiagnostic_registerCallbacks!
+ERROR: NN API returned error ANEURALNETWORKS_BAD_DATA at line 1132 while adding operation.
+
+ERROR: Restored original execution plan after delegate application failure.
+ERROR: Failed to apply NNAPI delegate.
+ERROR: Benchmarking failed.

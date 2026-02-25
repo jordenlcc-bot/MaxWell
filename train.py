@@ -22,21 +22,24 @@ from pde import (
 from models import DisplacementPINN
 
 
-def compute_l2_error(model, device: str, T: float = 1.0, n: int = 200) -> float:
-    """在均匀网格上计算 L2 相对误差"""
+def compute_l2_error(model, device: str, T: float = None, n: int = 200) -> float:
+    """修正后的 L2 误差 — 在 t=0.25 和 t=0.75 两点取平均，避免 t=1.0 零点陷阱。"""
+    t_eval_points = [0.25, 0.75]
     model.eval()
+    errs = []
     with torch.no_grad():
         xs = torch.linspace(0, 1, n, device=device).unsqueeze(1)
-        ts = torch.full((n, 1), T, device=device)
-        xt = torch.cat([xs, ts], dim=-1)
-        pred = model(xt)
-        Ez_pred, Hy_pred = pred[:, 0:1], pred[:, 1:2]
-        Ez_true, Hy_true = exact_solution(xs, ts)
-
-        err_Ez = torch.norm(Ez_pred - Ez_true) / (torch.norm(Ez_true) + 1e-10)
-        err_Hy = torch.norm(Hy_pred - Hy_true) / (torch.norm(Hy_true) + 1e-10)
+        for t_val in t_eval_points:
+            ts = torch.full((n, 1), t_val, device=device)
+            xt = torch.cat([xs, ts], dim=-1)
+            pred = model(xt)
+            Ez_pred, Hy_pred = pred[:, 0:1], pred[:, 1:2]
+            Ez_true, Hy_true = exact_solution(xs, ts)
+            err_Ez = torch.norm(Ez_pred - Ez_true) / (torch.norm(Ez_true) + 1e-10)
+            err_Hy = torch.norm(Hy_pred - Hy_true) / (torch.norm(Hy_true) + 1e-10)
+            errs.append(((err_Ez + err_Hy) / 2).item())
     model.train()
-    return ((err_Ez + err_Hy) / 2).item()
+    return sum(errs) / len(errs)
 
 
 def train(
@@ -77,6 +80,7 @@ def train(
     print(f"\n{'='*55}")
     print(f"  训练: {label}  ({'DisplacementPINN' if is_displacement else 'BaselinePINN'})")
     print(f"  epochs={epochs}  lr={lr}  device={device}")
+    print(f"  ✅ 使用修正后 L2 指标 (t=0.25 & t=0.75 平均，非旧版 t=1.0)")
     print(f"{'='*55}")
 
     for epoch in range(1, epochs + 1):
@@ -127,7 +131,7 @@ def train(
 
         # ── 日志 ────────────────────────────────────────────
         if epoch % log_every == 0 or epoch == 1:
-            l2 = compute_l2_error(model, device, T)
+            l2 = compute_l2_error(model, device)  # 修正后 L2：t=0.25 & t=0.75 均值
             elapsed = time.time() - t0
             history["epochs_log"].append(epoch)
             history["loss_log"].append(loss.item())

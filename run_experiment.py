@@ -28,10 +28,10 @@ from pde import exact_solution
 os.makedirs("results", exist_ok=True)
 
 # ── 超参数（CPU 友好：网络小，轮数适中）─────────────────
-EPOCHS     = 6000
+EPOCHS     = 5000
 HIDDEN_DIM = 64
 DEPTH      = 4
-LR         = 1e-3
+LR         = 5e-4
 N_PDE      = 2000
 N_IC       = 500
 N_BC       = 500
@@ -39,7 +39,8 @@ T          = 1.0
 DEVICE     = "cuda" if torch.cuda.is_available() else "cpu"
 
 print(f"\n🖥  Device: {DEVICE}")
-print(f"📐 Network: hidden={HIDDEN_DIM}, depth={DEPTH}, epochs={EPOCHS}\n")
+print(f"📐 Network: hidden={HIDDEN_DIM}, depth={DEPTH}, epochs={EPOCHS}, lr={LR}")
+print(f"✅ L2 指标：修正后多时间点评估 (t=0.25 & t=0.75 均值)，非旧版 t=1.0 单点。\n")
 
 # ═══════════════════════════════════════════════════════════
 # 1. 训练 Baseline PINN

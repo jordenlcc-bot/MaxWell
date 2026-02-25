@@ -1,0 +1,25 @@
+INFO: STARTING!
+INFO: Log parameter values verbosely: [0]
+INFO: Min num runs: [100]
+INFO: Num threads: [4]
+INFO: Min warmup runs: [10]
+INFO: Graph: [/data/local/tmp/mobilenet_v2_int8.tflite]
+INFO: Signature to run: []
+INFO: #threads used for CPU inference: [4]
+INFO: Use gpu: [0]
+INFO: Use NNAPI: [0]
+INFO: Loaded model /data/local/tmp/mobilenet_v2_int8.tflite
+INFO: Initialized TensorFlow Lite runtime.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+VERBOSE: Replacing 64 out of 67 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 3 partitions for subgraph 0.
+INFO: The input model file size (MB): 4.01403
+INFO: Initialized session in 33.071ms.
+INFO: Running benchmark for at least 10 iterations and at least 0.5 seconds but terminate if exceeding 150 seconds.
+INFO: count=55 first=12355 curr=10756 min=8293 max=12355 avg=9085.38 std=851 p5=8415 median=8757 p95=11030
+
+INFO: Running benchmark for at least 100 iterations and at least 1 seconds but terminate if exceeding 150 seconds.
+INFO: count=114 first=10274 curr=8784 min=8217 max=10274 avg=8765.03 std=470 p5=8335 median=8595 p95=9934
+
+INFO: Inference timings in us: Init: 33071, First inference: 12355, Warmup (avg): 9085.38, Inference (avg): 8765.03
+INFO: Note: as the benchmark tool itself affects memory footprint, the following is only APPROXIMATE to the actual memory footprint of the model at runtime. Take the information at your discretion.
+INFO: Memory footprint delta from the start of the tool (MB): init=14.375 overall=14.875
