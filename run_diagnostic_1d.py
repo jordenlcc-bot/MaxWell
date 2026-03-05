@@ -5,13 +5,11 @@ run_diagnostic_1d.py  v3
 使用了稳定的初始化和 Cosine 退火。
 """
 
-import os, time, json, math
+import os
+import time
+import math
 import torch
 import torch.nn as nn
-import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 from pde import maxwell_residual, exact_solution, sample_collocation, sample_ic, sample_bc
 
@@ -26,7 +24,8 @@ def siren_init(layer, is_first=False):
     limit = (1.0 / n) if is_first else math.sqrt(6.0 / n) / w0
     with torch.no_grad():
         layer.weight.uniform_(-limit, limit)
-        if layer.bias is not None: layer.bias.zero_()
+        if layer.bias is not None:
+            layer.bias.zero_()
 
 HIDDEN_DIM = 64
 DEPTH      = 4
@@ -38,20 +37,23 @@ class BaselinePINN(nn.Module):
         siren_init(self.input_layer, is_first=True)
         self.hidden = nn.ModuleList()
         for _ in range(DEPTH):
-            l = nn.Linear(HIDDEN_DIM, HIDDEN_DIM); siren_init(l)
-            self.hidden.append(l)
+            layer = nn.Linear(HIDDEN_DIM, HIDDEN_DIM)
+            siren_init(layer)
+            self.hidden.append(layer)
         self.output_layer = nn.Linear(HIDDEN_DIM, 2)
         nn.init.xavier_uniform_(self.output_layer.weight, gain=0.01) # Very conservative
 
     def forward(self, xt):
         u = torch.sin(self.input_layer(xt))
-        for l in self.hidden: u = torch.sin(l(u))
+        for layer in self.hidden:
+            u = torch.sin(layer(u))
         return self.output_layer(u)
 
 class DisplCell(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        self.field = nn.Linear(dim, dim); siren_init(self.field)
+        self.field = nn.Linear(dim, dim)
+        siren_init(self.field)
         self.gate  = nn.Linear(dim, dim)
         nn.init.xavier_uniform_(self.gate.weight, gain=0.5)
         nn.init.constant_(self.gate.bias, -1.0)
@@ -71,7 +73,8 @@ class DisplacementPINN(nn.Module):
 
     def forward(self, xt):
         u = torch.sin(self.input_layer(xt))
-        for c in self.cells: u = c(u)
+        for c in self.cells:
+            u = c(u)
         return self.output_layer(u)
 
 @torch.no_grad()
@@ -124,7 +127,8 @@ def train_1d(model, lr, epochs, w_gate=0.0, label="?"):
             u = torch.sin(model.input_layer(torch.cat([x_c.detach(), t_c.detach()], dim=-1)))
             for c in model.cells:
                 g = torch.sigmoid(c.gate(u))
-                lg += g.mean(); u = c(u)
+                lg += g.mean()
+                u = c(u)
             lg /= len(model.cells)
 
         loss = loss_pde + W_IC * loss_ic + W_BC * loss_bc + w_gate * lg
@@ -135,7 +139,9 @@ def train_1d(model, lr, epochs, w_gate=0.0, label="?"):
 
         if ep in check_at:
             l2 = compute_l2(model)
-            log_ep.append(ep); log_l2.append(l2); log_pde.append(loss_pde.item())
+            log_ep.append(ep)
+            log_l2.append(l2)
+            log_pde.append(loss_pde.item())
             print(f"  {label} ep={ep:5d} | L2={l2:.4e} | PDE={loss_pde.item():.2e}" + (f" | G={lg.item():.2f}" if is_disp else ""))
 
     return {"l2": compute_l2(model), "ep": log_ep, "l2_hist": log_l2, "time": time.time()-t0}
