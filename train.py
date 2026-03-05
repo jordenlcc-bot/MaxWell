@@ -83,13 +83,17 @@ def train(
     print(f"  ✅ 使用修正后 L2 指标 (t=0.25 & t=0.75 平均，非旧版 t=1.0)")
     print(f"{'='*55}")
 
+    # 预分配全零 Tensor，避免循环内重复创建
+    zeros_pde = torch.zeros((n_pde, 1), device=device)
+    zeros_bc = torch.zeros((2 * n_bc, 1), device=device)
+
     for epoch in range(1, epochs + 1):
         optimizer.zero_grad()
 
         # ── PDE 残差损失 ────────────────────────────────────
         x_c, t_c = sample_collocation(n_pde, T, device)
         r1, r2 = maxwell_residual(model, x_c, t_c)
-        loss_pde = mse(r1, torch.zeros_like(r1)) + mse(r2, torch.zeros_like(r2))
+        loss_pde = mse(r1, zeros_pde) + mse(r2, zeros_pde)
 
         # ── 初始条件损失 ────────────────────────────────────
         x_ic, t_ic, Ez0, Hy0 = sample_ic(n_ic, device)
@@ -102,7 +106,7 @@ def train(
         xt_bc = torch.cat([x_bc, t_bc], dim=-1)
         pred_bc = model(xt_bc)
         # Ez = 0 on both boundaries
-        loss_bc = mse(pred_bc[:, 0:1], torch.zeros_like(pred_bc[:, 0:1]))
+        loss_bc = mse(pred_bc[:, 0:1], zeros_bc)
 
         # ── 门控稀疏正则化（仅 DisplacementPINN）───────────
         loss_gate = torch.tensor(0.0, device=device)
