@@ -37,8 +37,8 @@ DEPTH      = 4
 # 加载历史数据 + 模型权重
 # ──────────────────────────────────────────────
 def load_results():
-    b = torch.load("results/baseline_history.pt",     map_location="cpu", weights_only=False)
-    d = torch.load("results/displacement_history.pt", map_location="cpu", weights_only=False)
+    b = torch.load("results/baseline_history.pt",     map_location="cpu", weights_only=True)
+    d = torch.load("results/displacement_history.pt", map_location="cpu", weights_only=True)
 
     baseline = BaselinePINN(hidden_dim=HIDDEN_DIM, depth=DEPTH)
     baseline.load_state_dict(b["model"])

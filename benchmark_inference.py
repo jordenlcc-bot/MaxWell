@@ -37,7 +37,7 @@ N_REPEAT   = 200        # 延迟测量重复次数
 # 1. 加载模型
 # ──────────────────────────────────────────────
 ckpt = torch.load("results/displacement_history.pt",
-                  map_location=DEVICE, weights_only=False)
+                  map_location=DEVICE, weights_only=True)
 model = DisplacementPINN(hidden_dim=HIDDEN_DIM, depth=DEPTH).to(DEVICE)
 model.load_state_dict(ckpt["model"])
 model.eval()

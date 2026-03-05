@@ -1,9 +1,9 @@
 import torch, json
 
-b1 = torch.load('results/baseline_history.pt',       map_location='cpu', weights_only=False)['history']
-d1 = torch.load('results/displacement_history.pt',   map_location='cpu', weights_only=False)['history']
-b2 = torch.load('results/2d_baseline_history.pt',    map_location='cpu', weights_only=False)['history']
-d2 = torch.load('results/2d_displacement_history.pt',map_location='cpu', weights_only=False)['history']
+b1 = torch.load('results/baseline_history.pt',       map_location='cpu', weights_only=True)['history']
+d1 = torch.load('results/displacement_history.pt',   map_location='cpu', weights_only=True)['history']
+b2 = torch.load('results/2d_baseline_history.pt',    map_location='cpu', weights_only=True)['history']
+d2 = torch.load('results/2d_displacement_history.pt',map_location='cpu', weights_only=True)['history']
 
 data = {
     "1d": {
