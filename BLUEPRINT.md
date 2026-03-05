@@ -61,21 +61,21 @@ scratch/
 
 | 指标 | Baseline MLP | Displacement-Gated | 改进 |
 | ---- | ------------ | ------------------ | ---- |
-| 最终 L2 误差 | `2.43e+04` | **`1.37e+04`** | **↓ 43.6%** |
-| Gate 稀疏比 | — | **76.1%** | — |
-| 训练时间 | 145s | 336s | GPU (CUDA 12.1) |
+| 最终 L2 误差 | `3.27e-03` | **`2.64e-03`** | **↓ 19.1%** |
+| Gate 稀疏比 | — | **75.2%** | — |
+| 训练时间 | 137s | 223s | GPU (CUDA 12.1) |
 | 训练轮数 | 6000 | 6000 | — |
 
 ### 4.2 二维 Maxwell TM 模式（谐振腔）
 
 | 指标 | Baseline MLP | Displacement-Gated | 改进 |
 | ---- | ------------ | ------------------ | ---- |
-| 最终 L2 误差 | `2.68e-02` | **`1.13e-02`** | **↓ 57.7%** |
-| Gate 稀疏比 | — | **71.0%** | — |
-| 训练时间 | 164s | 477s | GPU (CUDA 12.1) |
+| 最终 L2 误差 | `3.30e-02` | **`1.67e-02`** | **↓ 49.6%** |
+| Gate 稀疏比 | — | **71.2%** | — |
+| 训练时间 | 174s | 430s | GPU (CUDA 12.1) |
 | 训练轮数 | 5000 | 5000 | — |
 
-> **关键结论**：从 1D → 2D，L2 改进比从 43.6% 提升至 **57.7%**。
+> **关键结论**：从 1D → 2D，L2 改进比从 19.1% 提升至 **49.6%**。
 > 问题空间越复杂，位移门控的优势越明显，符合预期。
 
 ### 4.3 推理稀疏加速（E）
@@ -129,8 +129,8 @@ Abstract（3 句话）:
   We propose DisplacementFieldCell, a neural network block inspired by 
   Maxwell's displacement current ∂D/∂t, which gates each neuron's update 
   based on local field variation. Applied to Physics-Informed Neural Networks 
-  for 1D/2D Maxwell equations, our method achieves 43.6%–57.7% lower L2 error 
-  than standard MLP PINNs while maintaining 71–76% gate sparsity, 
+  for 1D/2D Maxwell equations, our method achieves 19.1%–49.6% lower L2 error
+  than standard MLP PINNs while maintaining 71–75% gate sparsity,
   providing a physically interpretable form of dynamic sparse computation.
 
 1. Introduction
